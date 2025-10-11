@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import User, DoctorProfile, PatientProfile, Appointment, Prescription
 
 
+
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -14,14 +15,24 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        """Create user with hashed password."""
+        """Create user with hashed password and auto profile based on role."""
         password = validated_data.pop('password', None)
+        role = validated_data.pop('role', None)
+
         user = User(**validated_data)
         if password:
             user.set_password(password)
+        if role:
+            user.role = role
         user.save()
-        return user
 
+        # Automatically create related profile
+        if role == 'doctor':
+            DoctorProfile.objects.create(user=user)
+        elif role == 'patient':
+            PatientProfile.objects.create(user=user)
+
+        return user
 
 
 # Doctor Profile Serializer
