@@ -55,13 +55,17 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 
 # Appointment Serializer 
 class AppointmentSerializer(serializers.ModelSerializer):
-    doctor = serializers.StringRelatedField()
-    patient = serializers.StringRelatedField()
+    doctor = serializers.StringRelatedField(read_only=True)
+    patient = serializers.StringRelatedField(read_only=True)
+
+    # Allow flexible date/time input formats
+    date = serializers.DateField(input_formats=['%Y-%m-%d', '%m/%d/%Y'])
+    time = serializers.TimeField(input_formats=['%H:%M', '%H:%M:%S', '%I:%M %p'])
 
     class Meta:
         model = Appointment
         fields = ['id', 'doctor', 'patient', 'date', 'time', 'status', 'notes']
-
+        read_only_fields = ['status']  # Prevent patients from changing status
 
 # Prescription Serializer 
 class PrescriptionSerializer(serializers.ModelSerializer):
@@ -70,3 +74,11 @@ class PrescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prescription
         fields = ['id', 'appointment', 'medicine_name', 'dosage', 'instructions', 'issued_at']
+
+# Serializer for creating appointments (patients only)
+class AppointmentCreateSerializer(serializers.ModelSerializer):
+    doctor = serializers.PrimaryKeyRelatedField(queryset=DoctorProfile.objects.all())
+
+    class Meta:
+        model = Appointment
+        fields = ['doctor', 'date', 'time', 'notes']  # no status or patient — handled automatically

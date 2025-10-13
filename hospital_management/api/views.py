@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-
+from rest_framework import serializers
 from .models import User, DoctorProfile, PatientProfile, Appointment, Prescription
 from .serializers import (
     UserSerializer,
@@ -10,6 +10,7 @@ from .serializers import (
     PatientProfileSerializer,
     AppointmentSerializer,
     PrescriptionSerializer,
+    AppointmentCreateSerializer,
 )
 from .permissions import IsDoctor, IsPatient, IsAppointmentOwnerOrDoctor, IsPrescriptionOwnerOrDoctor
 
@@ -40,6 +41,7 @@ class DoctorProfileDetailView(generics.RetrieveUpdateAPIView):
         return DoctorProfile.objects.none()
 
 
+
 # -------------------- PATIENT PROFILE --------------------
 class PatientProfileListView(generics.ListAPIView):
     queryset = PatientProfile.objects.all()
@@ -58,15 +60,36 @@ class PatientProfileDetailView(generics.RetrieveUpdateAPIView):
             return PatientProfile.objects.filter(user=user)
         return PatientProfile.objects.none()
 
+class AvailableDoctorsView(generics.ListAPIView):
+    """List all doctors available for appointment selection."""
+    serializer_class = DoctorProfileSerializer
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+
+    def get_queryset(self):
+        return DoctorProfile.objects.all()
+
 
 # -------------------- APPOINTMENT --------------------
 class AppointmentRequestView(generics.CreateAPIView):
-    serializer_class = AppointmentSerializer
-    permission_classes = [IsPatient]
+    serializer_class = AppointmentCreateSerializer
+    permission_classes = [IsPatient, permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         """Allow only patients to request appointments (pending by default)."""
-        serializer.save(patient=self.request.user, status='pending')
+        doctor_id = self.request.data.get('doctor')
+        if not doctor_id:
+            raise serializers.ValidationError({"doctor": "Doctor ID is required."})
+
+        try:
+            doctor_profile = DoctorProfile.objects.get(id=doctor_id)
+        except DoctorProfile.DoesNotExist:
+            raise serializers.ValidationError({"doctor": "Invalid doctor ID."})
+
+        serializer.save(
+            patient=self.request.user,
+            doctor=doctor_profile.user,
+            status='pending'
+        )
 
 
 class AppointmentListView(generics.ListAPIView):
@@ -86,7 +109,8 @@ class AppointmentListView(generics.ListAPIView):
 class AppointmentUpdateView(generics.UpdateAPIView):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
-    permission_classes = [IsDoctor, IsAppointmentOwnerOrDoctor]
+    permission_classes = [permissions.IsAuthenticated, IsDoctor]
+
 
     def update(self, request, *args, **kwargs):
         """Allow doctor to confirm, cancel, or complete appointment."""
@@ -96,7 +120,7 @@ class AppointmentUpdateView(generics.UpdateAPIView):
         if status_choice not in ['confirmed', 'cancelled', 'completed']:
             return Response({"error": "Invalid status update."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Optionally allow doctor to set date/time when confirming
+        # Allow doctor to set date/time when confirming
         if status_choice == 'confirmed':
             appointment.date = request.data.get('date', appointment.date)
             appointment.time = request.data.get('time', appointment.time)

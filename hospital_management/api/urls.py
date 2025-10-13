@@ -16,6 +16,8 @@ urlpatterns = [
     # PATIENT PROFILE Endpoints
     path('patients/', views.PatientProfileListView.as_view(), name='patient-list'),
     path('patients/<int:pk>/', views.PatientProfileDetailView.as_view(), name='patient-detail'),
+    path('doctors/available/', views.AvailableDoctorsView.as_view(), name='available-doctors'),
+
 
     # APPOINTMENTS Endpoints
     path('appointments/request/', views.AppointmentRequestView.as_view(), name='appointment-request'),
