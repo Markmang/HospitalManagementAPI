@@ -65,15 +65,52 @@ class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
         fields = ['id', 'doctor', 'patient', 'date', 'time', 'status', 'notes']
-        read_only_fields = ['status']  # Prevent patients from changing status
+        read_only_fields = ['doctor', 'patient', 'notes']  # doctors can’t change patient's notes
+
+    def __init__(self, *args, **kwargs):
+        """Customize fields dynamically based on user role."""
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+
+        if request:
+            if request.user.role == 'patient':
+                # Patients can only set date, time, and notes (status handled automatically)
+                self.fields['status'].read_only = True
+            elif request.user.role == 'doctor':
+                # Doctors can’t edit notes (only date/time/status)
+                self.fields['notes'].read_only = True
 
 # Prescription Serializer 
 class PrescriptionSerializer(serializers.ModelSerializer):
-    appointment = serializers.StringRelatedField()
+    appointment = serializers.PrimaryKeyRelatedField(
+        queryset=Appointment.objects.none(),  # default empty until set in __init__
+        write_only=True
+    )
+    doctor = serializers.CharField(source='appointment.doctor.username', read_only=True)
+    patient = serializers.CharField(source='appointment.patient.username', read_only=True)
 
     class Meta:
         model = Prescription
-        fields = ['id', 'appointment', 'medicine_name', 'dosage', 'instructions', 'issued_at']
+        fields = [
+            'id',
+            'appointment',
+            'doctor',
+            'patient',
+            'medicine_name',
+            'dosage',
+            'instructions',
+            'issued_at',
+        ]
+        read_only_fields = ['issued_at', 'doctor', 'patient']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            # If the logged-in user is a doctor, show only their appointments
+            if request.user.role == 'doctor':
+                self.fields['appointment'].queryset = Appointment.objects.filter(doctor=request.user)
+
 
 # Serializer for creating appointments (patients only)
 class AppointmentCreateSerializer(serializers.ModelSerializer):
@@ -81,4 +118,4 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Appointment
-        fields = ['doctor', 'date', 'time', 'notes']  # no status or patient — handled automatically
+        fields = ['doctor', 'notes']  # no status or patient — handled automatically

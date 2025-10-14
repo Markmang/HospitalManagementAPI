@@ -161,8 +161,3 @@ class PrescriptionCreateView(generics.CreateAPIView):
         serializer.save(appointment=appointment)
 
 
-class PrescriptionDetailView(generics.RetrieveAPIView):
-    """Allow doctor or patient involved to view prescription detail."""
-    serializer_class = PrescriptionSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPrescriptionOwnerOrDoctor]
-    queryset = Prescription.objects.all()

@@ -27,7 +27,6 @@ urlpatterns = [
     # PRESCRIPTIONS Endpoints
     path('prescriptions/', views.PrescriptionListView.as_view(), name='prescription-list'),
     path('prescriptions/create/', views.PrescriptionCreateView.as_view(), name='prescription-create'),
-    path('prescriptions/<int:pk>/', views.PrescriptionDetailView.as_view(), name='prescription-detail'),
     # JWT Authentication Endpoints
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
