@@ -44,8 +44,8 @@ class Appointment(models.Model):
 
     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="appointments_as_doctor")
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="appointments_as_patient")
-    date = models.DateField()
-    time = models.TimeField()
+    date = models.DateField(null=True, blank=True)
+    time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(blank=True, null=True)
 
