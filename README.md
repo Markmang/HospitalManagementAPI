@@ -198,25 +198,41 @@ Content-Type: application/json
 
 7. Project Structure
 
-hospital_management_api/
+HospitalManagementAPI/
 │
-├── manage.py
-├── requirements.txt
-├── hospital_management/   # Project settings
+├── api/
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── filters.py
+│   ├── migrations/
+│   │   └── __init__.py
+│   ├── models.py
+│   ├── permissions.py
+│   ├── serializers.py
+│   ├── urls.py
+│   └── views.py
+│
+├── HospitalManagementAPI/
+│   ├── __init__.py
+│   ├── asgi.py
 │   ├── settings.py
 │   ├── urls.py
 │   └── wsgi.py
-├── api/                   # Main app
-│   ├── models.py
-│   ├── views.py
-│   ├── serializers.py
-│   ├── permissions.py
-│   └── urls.py
-├── db.sqlite3             # Database file
-└── venv/                  # Virtual environment
-
-
----
+│
+├── staticfiles/
+│   └── (auto-collected static files)
+│
+├── templates/
+│   └── (HTML templates if any)
+│
+├── manage.py
+├── Procfile
+├── requirements.txt
+├── runtime.txt
+├── .env
+├── .gitignore
+└── README.md
 
 8. Notes
 
