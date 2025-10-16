@@ -17,6 +17,9 @@ import dj_database_url
 from dotenv import load_dotenv
 
 load_dotenv()
+print("✅ DATABASE_URL:", os.getenv("DATABASE_URL"))
+print("✅ POSTGRES_LOCALLY:", os.getenv("POSTGRES_LOCALLY"))
+
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -93,19 +96,27 @@ WSGI_APPLICATION = 'hospital_management.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+import os
+import dj_database_url
+from pathlib import Path
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Get environment and database URL
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if DATABASE_URL and (DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://")):
+# If DATABASE_URL exists (either from Railway or your local .env), use Postgres
+if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
-            ssl_require=True
+            ssl_require=ENVIRONMENT == 'production'  # Only require SSL in production
         )
     }
 else:
+    # Fallback to SQLite for local development when no DATABASE_URL is set
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -113,6 +124,15 @@ else:
         }
     }
 
+# Optional flag — if you want to always use Postgres locally
+POSTGRES_LOCALLY = True  # set to False if you want to switch back to SQLite
+
+if POSTGRES_LOCALLY and DATABASE_URL:
+    DATABASES['default'] = dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=False  # Disable SSL locally to avoid psycopg2 SSL errors
+    )
 
 
 # Password validation
